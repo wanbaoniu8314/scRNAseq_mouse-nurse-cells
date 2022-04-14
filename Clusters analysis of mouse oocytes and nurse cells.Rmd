@@ -1,0 +1,128 @@
+---
+title: "Clusters analysis of mouse oocytes and nurse cells"
+output: html_document
+---
+
+###Install
+# Install the devtools package from Hadley Wickham
+```{r}
+install.packages('devtools')
+devtools::install_version(package = 'Seurat', version = package_version('2.3.0'))
+```
+### Load libraries
+```{r}
+library( "Seurat" )
+library( "ggplot2" )
+```
+### Load "Integrated mouse germ cells" seurat object (refer to Figure 2 of "Two distinct pathways of pregranulosa cell differentiation support follicle formation in the mouse ovary, Niu and Spradling, PNAS, 2020")
+```{r}
+Integrated.germcells.seurat <- readRDS("Integrated germ cells_Niu and Spradling_2020.RDS")
+```
+### Cluster analysis of fetal mouse ovarian germ cells in a deeper resolution)
+```{r}
+Integrated.germcells.seurat <- FindClusters(object = Integrated.germcells.seurat, reduction.type = "pca", dims.use = 1:12, 
+    resolution = 2.8, print.output = 0, save.SNN = TRUE, force.recalc = TRUE)
+PrintFindClustersParams(object = Integrated.germcells.seurat)
+```
+
+###Re-order cluster ID (GC-NC, GC-NC...) 
+```{r}
+Integrated.germcells.seurat_2 <- Integrated.germcells.seurat
+new_order <- c("6", "1", "0","3", "4", "12", "5", "19", "2","18", "15", "11", "10", "9", "8", "7", "13", "14", "21", "20", "17", "16")
+Integrated.germcells.seurat_2@ident <- factor(Integrated.germcells.seurat_2@ident, levels = new_order)
+```
+###Group germ cells by cluster ID (refer to Figure 3A; S3A. Cluster ID: "6"="0a"; "1"="0b"; "0"="1a"; "3"="1b"; "4"="1c"; "12"="1d"; "5"="1e"; "19"="1N"; "2"="1Nr"; "18"="2a"; "15"="2b"; "11"="2c"; "10"="2Nr"; "9"="3a"; "8"="3b"; "7"="3c"; "13"="3N"; "14"="4a"; "21"="4b"; "20"="4N"; "17"="4Nr"; "16"="5")
+```{r}
+TSNEPlot(object = Integrated.germcells.seurat_2, do.label = TRUE, pt.size = 1)
+```
+###Group germ cells by timepoints (refer to Figure S3B)
+```{r}
+TSNEPlot(object = Integrated.germcells.seurat_2, pt.size = 1, group.by = "orig.ident")
+```
+###Save RDS
+```{r}
+saveRDS(Integrated.germcells.seurat_2, "./Integrated.germcells.seurat_2.RDS")
+```
+###Make the violin plot for "nUMI" of GC and NC clusters (refer to Figure 3B)
+```{r}
+VlnPlot(object = Integrated.germcells.seurat_2,features.plot = c("nUMI"), point.size.use = 0)
+```
+###Make the heatmap for marker genes of GC and NC clusters (refer to Figure 4A)
+```{r}
+DoHeatmap(Integrated.germcells.seurat_2, genes.use = c("Hmgn5","Hist1h2ap","Rhox9","Phlda2", "Tuba1b", "Stra8", "Rec8", "Ccnd1", "Tuba3a", "Mphosph8", "Selenok", "M1ap", "Tex12", "Sycp2", "Atr", "Myo9a", "Tex15", "Ccnb3", "Syce3","Uba52", "Gm13269", "Gm27164", "Id1", "Sohlh1", "Figla", "Uchl1", "Padi6", "Ooep"), group.by = "ident", group.order = c(6, 1, 0, 3, 4, 12, 5, 18, 15, 11, 9, 8, 7, 14, 21, 19, 2, 10, 13, 20, 17, 16))
+```
+
+###Compare GC clusters to NC clusters
+#cluster15 vs 3, 4 (2b vs 1b,1c, refer to Figure 4B)
+```{r}
+GC15vs3and4_genes <- FindMarkers(Integrated.germcells.seurat_2, ident.1 = c(15), ident.2 = c(3, 4),min.pct = 0.25)
+write.csv(GC15vs3and4_genes, "./GC2bvs1band1c_genes.csv")
+```
+#cluster10 vs 19, 2 (2Nr vs 1N, 1Nr, refer to Figure 4B')
+```{r}
+NC10vs19and2_genes <- FindMarkers(Integrated.germcells.seurat_2, ident.1 = c(10), ident.2 = c(19, 2),min.pct = 0.25)
+write.csv(NC10vs19and2_genes, "./NC2Nrvs1Nand1Nr_genes.csv")
+```
+#cluster8 vs 15 (3b vs 2b, refer to Figure 4C)
+```{r}
+GC8vs15_genes <- FindMarkers(Integrated.germcells.seurat_2, ident.1 = c(8), ident.2 = c(15),min.pct = 0.25)
+write.csv(GC8vs15_genes, "./GC3bvs2b_genes.csv")
+```
+#cluster13 vs 10 (3N vs 2Nr, refer to Figure 4C')
+```{r}
+NC13vs10_genes <- FindMarkers(Integrated.germcells.seurat_2, ident.1 = c(13), ident.2 = c(10),min.pct = 0.25)
+write.csv(NC13vs10_genes, "./NC3Nvs2Nr_genes.csv")
+```
+#cluster14 vs 8 (4a vs 3b, refer to Figure 4D)
+```{r}
+GC14vs8_genes <- FindMarkers(Integrated.germcells.seurat_2, ident.1 = c(14), ident.2 = c(8),min.pct = 0.25)
+write.csv(GC14vs8_genes, "./GC4avs3b_genes.csv")
+```
+#cluster20 vs 13 (4N vs 3N, refer to Figure 4D')
+```{r}
+NC20vs13_genes <- FindMarkers(Integrated.germcells.seurat_2, ident.1 = c(20), ident.2 = c(13),min.pct = 0.25)
+write.csv(NC20vs13_genes, "./NC4Nvs3N_genes.csv")
+```
+
+###Look for common genes expressed in GC clusters rather than NC clusters (refer to Figure S4B)
+##genes in cluster 14
+```{r}
+n <- read.csv("./cluster20vs14_14positive.csv" )
+GC14 <- as.character(n[,1])
+GC14_real <- GC14[1:702]
+```
+##genes in cluster 7, 8, 9
+```{r}
+nn <- read.csv("./cluster13vs789_789positive.csv" )
+GC789 <- as.character(nn[,1])
+GC789_real <- GC789[1:695]
+```
+#common genes between cluster 14 and cluster7,8,9
+```{r}
+commonGC_14_789 <- intersect(GC14_real,GC789_real)
+```
+##genes in cluster 18, 15, 11
+```{r}
+nnn <- read.csv("./cluster10vs181511_181511positive.csv" )
+GC181511 <- as.character(nnn[,1])
+GC181511_real <- GC181511[1:1016]
+```
+#common genes among cluster14, cluster 7,8,9 and cluster 18, 15, 11
+```{r}
+commonGC_14_789_181511 <- intersect(commonGC_14_789,GC181511_real)
+write.csv(commonGC_14_789_181511, "./commonGC_14_789_181511.csv")
+```
+```{r}
+nnnn <- read.csv("./cluster15and8and14vs10and13and20_genes_only15814.csv" )
+GC15814 <- as.character(nnnn[,1])
+GC15814_real <- GC15814[1:416]
+```
+###Here is the common genes expressed in GC clusters rather than NC clusters
+```{r}
+GC_notNC <- c(commonGC_14_789_181511, GC15814_real)
+GC_notNC_real <- unique(GC_notNC)
+saveRDS(GC_notNC_real, "./GC_notNC_real.RDS")
+```
+
+
+
